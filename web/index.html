@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MundaLens | Farm planning</title>
+  <link rel="stylesheet" href="/vendor/leaflet.css">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/vendor/leaflet.js"></script>
+  <script defer src="/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#answer">Skip to results</a>
+<header><div class="shell"><strong>MundaLens</strong><a href="https://www.spaceappschallenge.org/2026/challenges/field-shift-adapting-farms-with-nasa-data/">NASA Space Apps · Field Shift</a></div></header>
+<main class="shell">
+  <section class="intro"><h1>What should I plant next?</h1><p>Pin your farm, then compare your current crop with two alternatives using NASA rainfall, soil and satellite data.</p></section>
+  <div class="layout">
+    <section class="panel" id="map-panel" aria-labelledby="map-title">
+      <div class="section-head"><h2 id="map-title">1 · Find your farm</h2><label for="basemap" class="sr-only">Map imagery</label><select id="basemap"><option value="satellite">Satellite imagery</option><option value="streets">Street map</option></select></div>
+      <form id="place-form" class="search" role="search"><label for="place" class="sr-only">Search for a village, town or farm</label><input id="place" type="search" placeholder="Search a village, town or farm name" autocomplete="off"><button class="secondary" type="submit">Search</button></form>
+      <ul id="place-results" class="place-results" hidden></ul>
+      <div class="actions"><button type="button" class="secondary" id="locate">Use my location</button><button type="button" class="secondary" id="demo">Try Lusaka</button></div>
+      <div id="farm-map" aria-label="Interactive farm map"></div>
+      <p id="map-hint" class="hint">Click the map or drag the pin to your field. Your device location may differ from your field.</p>
+    </section>
+
+    <form id="farm" class="panel" novalidate>
+      <h2>2 · Season</h2>
+      <p class="hint" id="location-status" role="status">Choose a point on the map or search for a place.</p>
+      <details class="coords"><summary>Enter coordinates instead</summary>
+        <div class="fields"><label>Latitude<input id="lat" type="number" step="any" min="-85" max="85"></label><label>Longitude<input id="lon" type="number" step="any" min="-180" max="180"></label></div>
+      </details>
+      <div class="presets" role="group" aria-label="Season dates">
+        <button type="button" class="chip-button" id="preset-season">Last rainy season</button>
+        <button type="button" class="chip-button" id="preset-recent">Last 6 months</button>
+      </div>
+      <div class="fields"><label>From<input id="start" type="date" required></label><label>To<input id="end" type="date" required></label></div>
+
+      <h2>3 · Crops</h2>
+      <label>Current crop<select id="previous"></select></label>
+      <div class="fields"><label>Alternative 1<select id="alternative-a"></select></label><label>Alternative 2<select id="alternative-b"></select></label></div>
+      <div class="fields"><label>Water access<select id="irrigation"><option value="unknown">Unknown</option><option value="rainfed">Rainfed</option><option value="irrigated">Irrigated</option></select></label><label>Soil today<select id="soil"><option value="unknown">Unknown</option><option value="dry">Dry</option><option value="moist">Moist</option><option value="wet">Wet</option></select></label></div>
+      <label>Priority<select id="priority"><option value="water">Water conservation</option><option value="cover">Soil cover</option><option value="market">Market opportunity</option></select></label>
+      <label>Soil pH (optional)<input id="soil-ph" type="number" min="3" max="10" step="0.1" placeholder="Estimated from SoilGrids if empty"></label>
+      <details class="advanced"><summary>More options</summary>
+        <label>Rainfall data<select id="rain-source"><option value="power">NASA POWER (worldwide)</option><option value="chirps">CHIRPS (Africa, about 5 km)</option></select></label>
+        <label>Past seasons to compare<select id="past-seasons"><option value="15">15 seasons (recommended)</option><option value="8">8 seasons</option><option value="0">Selected season only</option></select></label>
+        <label>Notes for yourself<textarea id="notes" maxlength="360" rows="2" placeholder="Soil type, planting calendar, varieties or buyers. Shown in the summary, not used in scoring."></textarea></label>
+      </details>
+      <p id="stale" class="notice" role="status" hidden>Your choices changed. Select Compare options to update the results.</p>
+      <button id="run" class="primary" disabled>Compare options</button>
+      <p id="status" class="hint" role="status"></p>
+    </form>
+
+    <section class="panel" id="answer" aria-labelledby="answer-title" tabindex="-1">
+      <div class="section-head"><h2 id="answer-title">What to plant next</h2>
+        <div class="actions"><button type="button" class="secondary" id="share" disabled>Copy summary</button><a class="button secondary" id="whatsapp" href="#" target="_blank" rel="noopener" hidden>WhatsApp</a><button type="button" class="secondary" id="print" disabled>Print or save PDF</button></div></div>
+      <p id="rotation-context" class="hint">Select a farm to load rainfall and compare your options.</p>
+      <div id="verdict" aria-live="polite"></div>
+      <div id="assumptions" class="chips"></div>
+      <div id="checks"></div>
+      <div id="ranking"></div>
+      <div id="rotations" class="cards"></div>
+      <div id="rotation-notes" class="hint"></div>
+    </section>
+
+    <div class="stack" id="more">
+      <section class="panel"><h2>Farm Memory</h2>
+        <div id="metrics" class="metrics"></div>
+        <label class="inline" for="stage-crop">Show growth stages for <select id="stage-crop"></select></label>
+        <div id="chart"></div><p id="chart-readout" class="hint" role="status" aria-live="polite">Tap or hover the chart to read a day. Arrow keys move one day.</p><p id="source" class="hint"></p></section>
+      <section class="panel"><div class="section-head"><h2>Latest NASA evidence</h2><button id="refresh" type="button" class="secondary" disabled>Refresh</button></div><p class="hint">These observations describe the area around the selected point. Each source updates on its own schedule.</p><div class="cards" id="evidence">
+        <article class="card"><div class="card-head"><h3>NASA POWER</h3><span class="chip muted" id="power-chip">Checking</span></div><div id="power-status" class="hint" role="status"></div><p class="impact">Used in scoring: daily rainfall and temperature history.</p></article>
+        <article class="card"><div class="card-head"><h3>GPM IMERG rainfall</h3><span class="chip muted" id="imerg-chip">Checking</span></div><div id="imerg-status" class="hint" role="status"></div><div id="imerg-map"></div><div id="imerg-day-status" class="hint" role="status"></div><p class="impact">Context only: shows recent rain near the pin.</p></article>
+        <article class="card"><div class="card-head"><h3>SMAP soil moisture</h3><span class="chip muted" id="smap-chip">Checking</span></div><div id="smap-status" class="hint" role="status"></div><p class="impact">Used as a consistency check when the season ends within 10 days of the observation.</p></article>
+        <article class="card"><div class="card-head"><h3>Landsat vegetation</h3><span class="chip muted" id="hls-chip">Checking</span></div><div id="hls-status" class="hint" role="status"></div><div id="hls-image"></div><p class="impact">Used as a consistency check on crop cover during the season.</p></article>
+        <article class="card"><div class="card-head"><h3>SRTM elevation and slope</h3><span class="chip muted" id="srtm-chip">Checking</span></div><div id="srtm-status" class="hint" role="status"></div><p class="impact">Used in scoring: steeper ground lets less rain soak in. Elevation refines evaporation.</p></article>
+        <article class="card"><div class="card-head"><h3>Soil at the pin</h3><span class="chip muted" id="soil-chip">Checking</span></div><div id="soil-status" class="hint" role="status"></div><p class="impact">Used in scoring: sets how much water the soil holds and its pH.</p></article>
+        <article class="card"><div class="card-head"><h3>Rainfall cross-check</h3><span class="chip muted" id="rain-chip">Waiting</span></div><div id="rain-status" class="hint" role="status"></div><div id="rain-action"></div><p class="impact">Compares NASA POWER with CHIRPS for your dates (Africa only).</p></article>
+      </div></section>
+      <section class="panel"><div class="section-head"><h2>Market scenario</h2><label class="inline" for="currency">Currency <select id="currency"><option value="ZMW">ZMW</option><option value="USD">USD</option><option value="KES">KES</option><option value="TZS">TZS</option><option value="MWK">MWK</option><option value="ZAR">ZAR</option><option value="EUR">EUR</option></select></label></div>
+        <p class="hint">Enter a price, quantity and direct costs for each crop to compare gross margins.</p>
+        <div class="table-wrap"><table class="market"><thead><tr><th>Crop</th><th>Price per kg</th><th>Sale quantity (kg)</th><th>Direct costs</th><th>Gross margin</th></tr></thead><tbody id="market-rows"></tbody></table></div>
+        <p id="margin" class="hint" aria-live="polite"></p></section>
+    </div>
+  </div>
+</main>
+<div class="float-bar"><button type="button" class="primary" id="run-float" disabled>Compare options</button></div>
+<footer class="shell"><a href="/docs">API documentation</a></footer>
+</body>
+</html>
