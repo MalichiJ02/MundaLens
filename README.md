@@ -56,3 +56,9 @@ The default imagery map uses Esri. To enable the optional Google Satellite basem
 ## What the comparison means
 
 NASA rainfall, soil moisture, vegetation and elevation are observations or estimates at different scales. The comparison uses FAO crop water requirements and drought sensitivity as a first screening step. The grower selects crops suitable for the region and can add local soil and crop information. Confirm local varieties, planting windows, drainage and market conditions before making a planting decision.
+
+## Soil and error logging
+
+- Soil comes from the bundled SoilGrids maps first (Lusaka, instant), then ISRIC's map service, then the REST service, which ISRIC has paused. A failure prints the reason in the server terminal.
+- Failed NASA evidence downloads also print the real error in the terminal.
+- Start with `./run.sh`. It loads `.env` (a line `export NASA_EARTHDATA_TOKEN=...`, permissions 600) when present. Never commit or share `.env`.

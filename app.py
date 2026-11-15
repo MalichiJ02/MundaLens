@@ -1,6 +1,7 @@
 """Local MundaLens web server. Run with Python 3.10 or later."""
 
 import csv
+import logging
 import io
 import math
 import os
@@ -428,7 +429,8 @@ def farm_rain_check(lat: float, lon: float, start: date, end: date):
 def optional_evidence(operation, source, *args):
     try:
         return operation(*args)
-    except (OSError, StopIteration, KeyError, TypeError, ValueError, RuntimeError, IndexError):
+    except (OSError, StopIteration, KeyError, TypeError, ValueError, RuntimeError, IndexError) as error:
+        logging.getLogger("uvicorn.error").warning("%s failed: %r", getattr(operation, "__name__", "evidence"), error)
         return {"source": source, "status": "This service did not return evidence for the selected point."}
 
 
